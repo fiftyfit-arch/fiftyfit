@@ -1,0 +1,420 @@
+import { useState, useEffect } from "react";
+
+const BAND_COLORS = [
+  { label: "노랑", color: "#FFD700", textColor: "#333" },
+  { label: "빨강", color: "#E8363A", textColor: "#fff" },
+  { label: "파랑", color: "#2563EB", textColor: "#fff" },
+  { label: "초록", color: "#16A34A", textColor: "#fff" },
+  { label: "보라", color: "#7C3AED", textColor: "#fff" },
+  { label: "검정", color: "#1a1a1a", textColor: "#fff" },
+  { label: "회색", color: "#9CA3AF", textColor: "#fff" },
+];
+
+const EXERCISES = [
+  { id: "goblet", label: "고블릿 스쿼트", icon: "🏋️", unit: "kg" },
+  { id: "deadlift", label: "데드리프트", icon: "⚡", unit: "kg" },
+  { id: "swing", label: "스윙", icon: "🔄", unit: "kg" },
+  { id: "farmers", label: "파머스워크", icon: "🚶", unit: "kg" },
+  { id: "pullover", label: "풀오버", icon: "💪", unit: "kg" },
+  { id: "ohp", label: "원암 오버헤드프레스", icon: "🙌", unit: "kg" },
+];
+
+const MONTHS = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+const YEARS = Array.from({ length: 6 }, (_, i) => 2023 + i);
+
+const emptyRecord = () => ({
+  goblet: "", deadlift: "", swing: "", farmers: "", pullover: "", ohp: "",
+  band: "", other: "", otherLabel: "", name: "",
+});
+
+export default function FiftyFitApp() {
+  const now = new Date();
+  const [view, setView] = useState("home"); // home | record | history | detail
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [form, setForm] = useState(emptyRecord());
+  const [records, setRecords] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("fiftyfit_records") || "[]"); }
+    catch { return []; }
+  });
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem("fiftyfit_records", JSON.stringify(records)); }
+    catch {}
+  }, [records]);
+
+  const handleSave = () => {
+    if (!form.name.trim()) return alert("이름 또는 별명을 입력해주세요.");
+    const existing = records.findIndex(r => r.year === year && r.month === month && r.name === form.name.trim());
+    const entry = { ...form, year, month, savedAt: new Date().toISOString() };
+    if (existing >= 0) {
+      const updated = [...records];
+      updated[existing] = entry;
+      setRecords(updated);
+    } else {
+      setRecords([entry, ...records]);
+    }
+    setSaved(true);
+    setTimeout(() => { setSaved(false); setView("home"); }, 1200);
+  };
+
+  const handleDelete = (idx) => {
+    if (!window.confirm("이 기록을 삭제할까요?")) return;
+    setRecords(records.filter((_, i) => i !== idx));
+    setView("history");
+    setSelectedRecord(null);
+  };
+
+  const startRecord = () => {
+    const existing = records.find(r => r.year === year && r.month === month);
+    setForm(existing ? { ...existing } : emptyRecord());
+    setView("record");
+  };
+
+  const groupedByMonth = records.reduce((acc, r, i) => {
+    const key = `${r.year}-${String(r.month).padStart(2,"0")}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push({ ...r, _idx: i });
+    return acc;
+  }, {});
+
+  // ── STYLES ──
+  const brandOrange = "#E8622A";
+  const brandDark = "#1C1C1E";
+  const cardBg = "#FFFFFF";
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#F2F2F7", fontFamily: "'Noto Sans KR', sans-serif",
+      display: "flex", flexDirection: "column", maxWidth: 430, margin: "0 auto",
+      position: "relative",
+    }}>
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+
+      {/* ── HEADER ── */}
+      <header style={{
+        background: brandOrange, color: "#fff", padding: "16px 20px 14px",
+        display: "flex", alignItems: "center", gap: 10,
+        boxShadow: "0 2px 12px rgba(232,98,42,0.3)",
+        position: "sticky", top: 0, zIndex: 100,
+      }}>
+        {view !== "home" && (
+          <button onClick={() => setView(view === "detail" ? "history" : "home")}
+            style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", padding: 0, marginRight: 4 }}>
+            ←
+          </button>
+        )}
+        <div style={{ fontSize: 24, lineHeight: 1 }}>🏋️</div>
+        <div>
+          <div style={{ fontWeight: 900, fontSize: 18, letterSpacing: "-0.5px" }}>FiftyFit</div>
+          <div style={{ fontSize: 11, opacity: 0.85, marginTop: 1 }}>나의 운동 기록 모음</div>
+        </div>
+        <div style={{ flex: 1 }} />
+        {view === "home" && (
+          <button onClick={() => setView("history")}
+            style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff", borderRadius: 20, padding: "6px 14px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
+            기록 보기
+          </button>
+        )}
+      </header>
+
+      <div style={{ flex: 1, padding: "20px 16px 100px", overflowY: "auto" }}>
+
+        {/* ══ HOME ══ */}
+        {view === "home" && (
+          <>
+            {/* Date Selector */}
+            <div style={{
+              background: cardBg, borderRadius: 16, padding: "20px", marginBottom: 16,
+              boxShadow: "0 1px 8px rgba(0,0,0,0.08)",
+            }}>
+              <div style={{ fontSize: 13, color: "#888", marginBottom: 12, fontWeight: 500 }}>기록할 날짜 선택</div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <select value={year} onChange={e => setYear(+e.target.value)} style={selectStyle}>
+                  {YEARS.map(y => <option key={y} value={y}>{y}년</option>)}
+                </select>
+                <select value={month} onChange={e => setMonth(+e.target.value)} style={selectStyle}>
+                  {MONTHS.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              {[
+                { label: "총 기록 수", value: records.length + "명", icon: "📋" },
+                { label: "이번 달", value: records.filter(r => r.year === now.getFullYear() && r.month === now.getMonth()+1).length + "명", icon: "📅" },
+              ].map(s => (
+                <div key={s.label} style={{ background: cardBg, borderRadius: 14, padding: "16px", boxShadow: "0 1px 8px rgba(0,0,0,0.07)", textAlign: "center" }}>
+                  <div style={{ fontSize: 24 }}>{s.icon}</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: brandOrange, marginTop: 4 }}>{s.value}</div>
+                  <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA */}
+            <button onClick={startRecord} style={{
+              width: "100%", background: brandOrange, color: "#fff", border: "none",
+              borderRadius: 16, padding: "18px", fontSize: 16, fontWeight: 900,
+              cursor: "pointer", boxShadow: "0 4px 16px rgba(232,98,42,0.4)",
+              letterSpacing: "-0.3px", transition: "transform 0.1s",
+            }}
+              onMouseDown={e => e.currentTarget.style.transform = "scale(0.98)"}
+              onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+            >
+              ✏️ {year}년 {month}월 기록 입력
+            </button>
+
+            {/* Recent */}
+            {records.length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ fontSize: 13, color: "#888", fontWeight: 700, marginBottom: 10 }}>최근 기록</div>
+                {records.slice(0, 3).map((r, i) => (
+                  <RecordCard key={i} r={r} onClick={() => { setSelectedRecord({ ...r, _idx: i }); setView("detail"); }} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ══ RECORD FORM ══ */}
+        {view === "record" && (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 900, color: brandDark, marginBottom: 16 }}>
+              {year}년 {month}월 운동 기록
+            </div>
+
+            {/* Name */}
+            <div style={{ ...fieldCard }}>
+              <label style={labelStyle}>이름 또는 별명 *</label>
+              <input
+                value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                placeholder="홍길동 / 운동왕"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* Exercises */}
+            {EXERCISES.map(ex => (
+              <div key={ex.id} style={fieldCard}>
+                <label style={labelStyle}><span style={{ marginRight: 6 }}>{ex.icon}</span>{ex.label}</label>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="number" min="0" step="0.5"
+                    value={form[ex.id]} onChange={e => setForm({ ...form, [ex.id]: e.target.value })}
+                    placeholder="0"
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  <span style={{ color: "#666", fontSize: 14, fontWeight: 700, minWidth: 24 }}>kg</span>
+                </div>
+              </div>
+            ))}
+
+            {/* Pull-up Band */}
+            <div style={fieldCard}>
+              <label style={labelStyle}>🎗️ 풀업 밴드 색</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                {BAND_COLORS.map(b => (
+                  <button key={b.label} onClick={() => setForm({ ...form, band: b.label })}
+                    style={{
+                      background: b.color, color: b.textColor, border: form.band === b.label ? "3px solid #1C1C1E" : "2px solid transparent",
+                      borderRadius: 20, padding: "6px 14px", fontSize: 13, cursor: "pointer", fontWeight: 700,
+                      boxShadow: form.band === b.label ? "0 0 0 2px #fff, 0 0 0 4px " + brandOrange : "none",
+                      transition: "all 0.15s",
+                    }}>
+                    {b.label}
+                  </button>
+                ))}
+                <button onClick={() => setForm({ ...form, band: "" })}
+                  style={{ background: "#F2F2F7", color: "#666", border: "2px solid #ddd", borderRadius: 20, padding: "6px 14px", fontSize: 13, cursor: "pointer" }}>
+                  없음
+                </button>
+              </div>
+            </div>
+
+            {/* Other */}
+            <div style={fieldCard}>
+              <label style={labelStyle}>📌 기타</label>
+              <input value={form.otherLabel} onChange={e => setForm({ ...form, otherLabel: e.target.value })}
+                placeholder="운동 이름" style={{ ...inputStyle, marginBottom: 8 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input type="number" min="0" step="0.5" value={form.other}
+                  onChange={e => setForm({ ...form, other: e.target.value })}
+                  placeholder="0" style={{ ...inputStyle, flex: 1 }} />
+                <span style={{ color: "#666", fontSize: 14, fontWeight: 700, minWidth: 24 }}>kg</span>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <button onClick={handleSave} style={{
+              width: "100%", background: saved ? "#16A34A" : brandOrange,
+              color: "#fff", border: "none", borderRadius: 16, padding: "18px",
+              fontSize: 16, fontWeight: 900, cursor: "pointer",
+              boxShadow: "0 4px 16px rgba(232,98,42,0.3)", marginTop: 8, transition: "background 0.3s",
+            }}>
+              {saved ? "✅ 저장 완료!" : "💾 기록 저장"}
+            </button>
+          </>
+        )}
+
+        {/* ══ HISTORY ══ */}
+        {view === "history" && (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 900, color: brandDark, marginBottom: 16 }}>
+              전체 기록
+            </div>
+            {records.length === 0 && (
+              <div style={{ textAlign: "center", color: "#aaa", marginTop: 60, fontSize: 15 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
+                아직 기록이 없어요
+              </div>
+            )}
+            {Object.entries(groupedByMonth).sort((a, b) => b[0].localeCompare(a[0])).map(([key, recs]) => (
+              <div key={key} style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, color: brandOrange, fontWeight: 900, marginBottom: 8 }}>
+                  {recs[0].year}년 {recs[0].month}월 ({recs.length}명)
+                </div>
+                {recs.map((r, i) => (
+                  <RecordCard key={i} r={r} onClick={() => { setSelectedRecord(r); setView("detail"); }} />
+                ))}
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* ══ DETAIL ══ */}
+        {view === "detail" && selectedRecord && (
+          <>
+            <div style={{ ...fieldCard, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 18, color: brandDark }}>{selectedRecord.name}</div>
+                  <div style={{ color: "#888", fontSize: 13, marginTop: 2 }}>
+                    {selectedRecord.year}년 {selectedRecord.month}월
+                  </div>
+                </div>
+                <button onClick={() => {
+                  setYear(selectedRecord.year); setMonth(selectedRecord.month);
+                  setForm({ ...selectedRecord }); setView("record");
+                }} style={{ background: brandOrange, color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
+                  수정
+                </button>
+              </div>
+            </div>
+
+            {EXERCISES.map(ex => selectedRecord[ex.id] && (
+              <div key={ex.id} style={{ ...fieldCard, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 14, color: "#333" }}><span style={{ marginRight: 6 }}>{ex.icon}</span>{ex.label}</span>
+                <span style={{ fontWeight: 900, fontSize: 16, color: brandOrange }}>{selectedRecord[ex.id]} kg</span>
+              </div>
+            ))}
+
+            {selectedRecord.band && (
+              <div style={{ ...fieldCard, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 14, color: "#333" }}>🎗️ 풀업 밴드 색</span>
+                <span style={{
+                  background: BAND_COLORS.find(b => b.label === selectedRecord.band)?.color || "#eee",
+                  color: BAND_COLORS.find(b => b.label === selectedRecord.band)?.textColor || "#333",
+                  borderRadius: 20, padding: "4px 14px", fontSize: 13, fontWeight: 700,
+                }}>
+                  {selectedRecord.band}
+                </span>
+              </div>
+            )}
+
+            {selectedRecord.other && (
+              <div style={{ ...fieldCard, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 14, color: "#333" }}>📌 {selectedRecord.otherLabel || "기타"}</span>
+                <span style={{ fontWeight: 900, fontSize: 16, color: brandOrange }}>{selectedRecord.other} kg</span>
+              </div>
+            )}
+
+            <button onClick={() => handleDelete(selectedRecord._idx)} style={{
+              width: "100%", background: "#FF3B30", color: "#fff", border: "none",
+              borderRadius: 16, padding: "16px", fontSize: 15, fontWeight: 700,
+              cursor: "pointer", marginTop: 16, opacity: 0.9,
+            }}>
+              🗑️ 기록 삭제
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ── BOTTOM NAV ── */}
+      {view !== "record" && (
+        <nav style={{
+          position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+          width: "100%", maxWidth: 430, background: "#fff", borderTop: "1px solid #E5E5EA",
+          display: "flex", padding: "10px 0 20px",
+        }}>
+          {[
+            { id: "home", icon: "🏠", label: "홈" },
+            { id: "history", icon: "📋", label: "전체기록" },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => setView(tab.id)} style={{
+              flex: 1, background: "none", border: "none", cursor: "pointer",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+              color: view === tab.id ? brandOrange : "#8E8E93",
+              fontWeight: view === tab.id ? 700 : 400, fontSize: 11,
+            }}>
+              <span style={{ fontSize: 22 }}>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
+function RecordCard({ r, onClick }) {
+  const brandOrange = "#E8622A";
+  const filled = [r.goblet, r.deadlift, r.swing, r.farmers, r.pullover, r.ohp].filter(Boolean).length;
+  return (
+    <div onClick={onClick} style={{
+      background: "#fff", borderRadius: 14, padding: "14px 16px", marginBottom: 8,
+      boxShadow: "0 1px 6px rgba(0,0,0,0.07)", cursor: "pointer",
+      display: "flex", alignItems: "center", gap: 12,
+      transition: "transform 0.1s",
+    }}
+      onMouseDown={e => e.currentTarget.style.transform = "scale(0.99)"}
+      onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+    >
+      <div style={{
+        width: 42, height: 42, borderRadius: 12, background: brandOrange + "18",
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+      }}>
+        🏋️
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: "#1C1C1E" }}>{r.name}</div>
+        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+          {r.year}년 {r.month}월 · 기록 {filled}개
+          {r.band ? ` · 밴드 ${r.band}` : ""}
+        </div>
+      </div>
+      <div style={{ color: "#C7C7CC", fontSize: 18 }}>›</div>
+    </div>
+  );
+}
+
+// Shared styles
+const fieldCard = {
+  background: "#fff", borderRadius: 14, padding: "14px 16px", marginBottom: 10,
+  boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
+};
+const labelStyle = {
+  display: "block", fontSize: 12, fontWeight: 700, color: "#888", marginBottom: 8, letterSpacing: "0.3px",
+};
+const inputStyle = {
+  width: "100%", border: "1.5px solid #E5E5EA", borderRadius: 10, padding: "10px 12px",
+  fontSize: 15, fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+  background: "#FAFAFA", color: "#1C1C1E",
+};
+const selectStyle = {
+  flex: 1, border: "1.5px solid #E5E5EA", borderRadius: 10, padding: "10px 12px",
+  fontSize: 15, fontFamily: "inherit", outline: "none", background: "#FAFAFA", color: "#1C1C1E",
+};
