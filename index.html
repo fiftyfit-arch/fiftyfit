@@ -619,11 +619,14 @@ function startRecord() {
   showPage("record");
 }
 
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbz0CjUzOzg_YM71M1spOznXlfrxJjQjEav6FucP69yfqJmV5XJyWSsnuU13UWlMeV4N/exec";
+
 function saveRecord() {
   const records = getRecords();
   const idx = records.findIndex(r => r.year === editingYear && r.month === editingMonth);
   const entry = {
     year: editingYear, month: editingMonth,
+    name: getName(),
     goblet: document.getElementById("f_goblet").value,
     deadlift: document.getElementById("f_deadlift").value,
     swing: document.getElementById("f_swing").value,
@@ -638,6 +641,14 @@ function saveRecord() {
   if (idx >= 0) records[idx] = entry;
   else records.push(entry);
   saveRecords(records);
+
+  // 구글 시트에 전송
+  fetch(SHEET_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  }).catch(() => {});
 
   showToast("✅ 저장 완료!");
   setTimeout(() => showPage("home"), 800);
