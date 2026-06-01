@@ -317,42 +317,42 @@
   <div class="field-card">
     <label class="field-label">🏋️ 고블릿 스쿼트</label>
     <div class="field-row">
-      <input class="field-input" id="f_goblet" type="number" min="0" step="0.5" placeholder="0">
+      <input class="field-input" id="f_goblet" type="text" inputmode="decimal" placeholder="예: 16 / 20">
       <span class="field-unit">kg</span>
     </div>
   </div>
   <div class="field-card">
     <label class="field-label">⚡ 데드리프트</label>
     <div class="field-row">
-      <input class="field-input" id="f_deadlift" type="number" min="0" step="0.5" placeholder="0">
+      <input class="field-input" id="f_deadlift" type="text" inputmode="decimal" placeholder="예: 20 / 24">
       <span class="field-unit">kg</span>
     </div>
   </div>
   <div class="field-card">
     <label class="field-label">🔄 스윙</label>
     <div class="field-row">
-      <input class="field-input" id="f_swing" type="number" min="0" step="0.5" placeholder="0">
+      <input class="field-input" id="f_swing" type="text" inputmode="decimal" placeholder="예: 16 / 20">
       <span class="field-unit">kg</span>
     </div>
   </div>
   <div class="field-card">
     <label class="field-label">🚶 파머스워크</label>
     <div class="field-row">
-      <input class="field-input" id="f_farmers" type="number" min="0" step="0.5" placeholder="0">
+      <input class="field-input" id="f_farmers" type="text" inputmode="decimal" placeholder="예: 16 / 20">
       <span class="field-unit">kg</span>
     </div>
   </div>
   <div class="field-card">
     <label class="field-label">💪 풀오버</label>
     <div class="field-row">
-      <input class="field-input" id="f_pullover" type="number" min="0" step="0.5" placeholder="0">
+      <input class="field-input" id="f_pullover" type="text" inputmode="decimal" placeholder="예: 12 / 16">
       <span class="field-unit">kg</span>
     </div>
   </div>
   <div class="field-card">
     <label class="field-label">🙌 원암 오버헤드프레스</label>
     <div class="field-row">
-      <input class="field-input" id="f_ohp" type="number" min="0" step="0.5" placeholder="0">
+      <input class="field-input" id="f_ohp" type="text" inputmode="decimal" placeholder="예: 8 / 12">
       <span class="field-unit">kg</span>
     </div>
   </div>
@@ -600,7 +600,7 @@ function addOtherExercise(label = "", kg = "") {
     </div>
     <input class="field-input" id="f_otherLabel_${idx}" type="text" placeholder="운동 이름" style="margin-bottom:8px;" value="${label}">
     <div class="field-row">
-      <input class="field-input" id="f_other_${idx}" type="number" min="0" step="0.5" placeholder="0" value="${kg}">
+      <input class="field-input" id="f_other_${idx}" type="text" inputmode="decimal" placeholder="예: 10 / 12" value="${kg}">
       <span class="field-unit">kg</span>
     </div>
   `;
